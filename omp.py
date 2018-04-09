@@ -1,4 +1,5 @@
 # -*- coding:utf-8 -*-
+# 参考: https://github.com/kibo35/sparse-modeling/blob/master/ch03.ipynb
 
 import numpy as np
 import matplotlib
