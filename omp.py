@@ -6,6 +6,7 @@ matplotlib.use('TKAgg')
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
+
 def OMP(A, b, eps, k):
     """
     直行マッチング追跡 (orthogonal matching pursuit: OMP) 
@@ -29,8 +30,7 @@ def OMP(A, b, eps, k):
         idx = np.where(S == 0)[0]
         
         for j in idx:
-            z = np.dot(A[:, j].T, r) / np.linalg.norm(A[:, j]) ** 2
-            err[j] = np.linalg.norm(A[:, j] * z - r) ** 2
+            err[j] = np.linalg.norm(r) ** 2 - np.dot(A[:, j], r) ** 2 / np.linalg.norm(A[:, j]) ** 2
             
         # サポートの更新
         S[err[idx].argmin()] = 1
@@ -92,7 +92,7 @@ def main():
     num = 10
     K0 = np.array(range(1, num + 1))
     eps = 1e-4
-    k = 1000
+    k = 300
 
     errs = np.zeros(num + 1)
     dists = np.zeros(num + 1)
