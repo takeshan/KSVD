@@ -122,7 +122,7 @@ def main():
         dists[k0] /= k
       
     # plot
-    fig = plt.figure(figsize=(15, 3))
+    fig = plt.figure(figsize=(8, 6))
     ax_L2 = fig.add_subplot(211)
     ax_L2.set_xlabel('# of non zero components')
     ax_L2.set_ylabel('the error of average L2')
