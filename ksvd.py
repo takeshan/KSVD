@@ -8,18 +8,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 from omp import OMP
-
-def collum_normalizarion(A):
-    """
-    行列 A の列に関して正規化する
-    
-    A: 正規化したい行列(ndarray)
-    """
-    tmpA = A.copy()
-    for m in range(A.shape[1]):
-        tmpA[:, m] /= np.linalg.norm(tmpA[:, m])
-
-    return tmpA
+from utils import *
 
 def KSVD(Y, m, k0, sig, iter_num, A0=None, initial_dictonary=None):
     """
@@ -37,7 +26,7 @@ def KSVD(Y, m, k0, sig, iter_num, A0=None, initial_dictonary=None):
     # 初期化
     if initial_dictonary is None:
         A = Y[:, :m]
-        A = collum_normalizarion(A)
+        A, W = collum_normalizarion(A)
     else:
         A = initial_dictonary
 
@@ -60,7 +49,7 @@ def KSVD(Y, m, k0, sig, iter_num, A0=None, initial_dictonary=None):
             X[j, omega] = S[0] * V.T[:, 0]
 
         val = np.abs(Y - np.dot(A, X)).mean()
-        A = clear_dictionary(A, X, Y)
+        A = fix_dictionary(Y, A, X)
         
         if A0 is not None:
             per = percent_of_recovering_atom(A, A0)
@@ -88,33 +77,7 @@ def percent_of_recovering_atom(A, A0, threshold=0.99):
            per += 1 
 
     per = (per * 100) / A.shape[1]
-    return per
-
-def clear_dictionary(dictionary, code, data):
-    n_features, n_components = dictionary.shape
-    n_components, n_samples = code.shape
-    norms = np.sqrt(sum(dictionary ** 2))
-    norms = norms[:, np.newaxis].T
-    dictionary = dictionary / np.dot(np.ones((n_features, 1)), norms)
-    code = code * np.dot(norms.T, np.ones((1, n_samples)))
-    
-    t1 = 4 # 3
-    t2 = 0.9# 0.999
-    error = sum((data - np.dot(dictionary, code)) ** 2)
-    gram = np.dot(dictionary.T, dictionary)
-    gram = gram - np.diag(np.diag(gram))
-    
-    for i in range(0, n_components):
-        if (max(gram[i, :]) > t2) or (len(*np.nonzero(abs(code[i, :]) > 1e-7)) <= t1):
-            val = np.max(error)
-            pos = np.argmax(error)
-            error[pos] = 0
-            dictionary[:, i] = data[:, pos] / np.linalg.norm(data[:, pos])
-            gram = np.dot(dictionary.T, dictionary)
-            gram = gram - np.diag(np.diag(gram))
-            
-    return dictionary
-        
+    return per        
 
 
 def fix_dictionary(Y, A, X):
@@ -130,8 +93,8 @@ def fix_dictionary(Y, A, X):
     X: スパースベクトル
     """
     # 正規化
-    normY = collum_normalizarion(Y)
-    normA = collum_normalizarion(A)
+    normY, _ = collum_normalizarion(Y)
+    normA, _ = collum_normalizarion(A)
     
     # グラム行列を使うことでアトムの類似度をはかる
     gram = np.dot(normA.T, normA)
@@ -141,11 +104,12 @@ def fix_dictionary(Y, A, X):
     t1 = 4
     t2 = 0.9
 
-    err = sum(Y - np.dot(A, X))
+    
+    err = sum(normY - np.dot(normA, X))
     
     for i in range(A.shape[1]):
         if max(gram[i, :] > t2) or (sum(X[i, :] != 0) <= t1):
-            idx = np.argmax()
+            idx = np.argmax(err)
             err[idx] = 0
             normA[:, i] = normY[:, idx]
             gram = np.dot(normA.T, normA)
@@ -160,7 +124,7 @@ def main():
 
     # ランダムな辞書 (30 x 60) を作成
     A0 = np.random.randn(30, 60)
-    A0 = collum_normalizarion(A0)
+    A0, _ = collum_normalizarion(A0)
 
     # 上記辞書から信号事例を 4000 個作成
     Y = np.zeros((30, 4000))
