@@ -59,19 +59,17 @@ def KSVD(Y, m, k0, sig, iter_num, A0=None, initial_dictonary=None):
             A[:, j] = U[:, 0]
             X[j, omega] = S[0] * V.T[:, 0]
 
-        val = np.linalg.norm(Y - np.dot(A, X))
+        val = np.abs(Y - np.dot(A, X)).mean()
+        A = clear_dictionary(A, X, Y)
         
         if A0 is not None:
             per = percent_of_recovering_atom(A, A0)
-            log.append([val.mean(), per])
-            print('mean error: {}, percent: {}'.format(val.mean(), per))
+            log.append([val, per])
+            print('mean error: {}, percent: {}'.format(val, per))
         else:
-            log.append(val.mean())
-            print('mean error: {}'.format(val.mean()))
+            log.append(val)
+            print('mean error: {}'.format(val))
             
-        if val ** 2 < eps:
-            break
-        
     return A, np.array(log)
 
 def percent_of_recovering_atom(A, A0, threshold=0.99):
@@ -91,8 +89,70 @@ def percent_of_recovering_atom(A, A0, threshold=0.99):
 
     per = (per * 100) / A.shape[1]
     return per
+
+def clear_dictionary(dictionary, code, data):
+    n_features, n_components = dictionary.shape
+    n_components, n_samples = code.shape
+    norms = np.sqrt(sum(dictionary ** 2))
+    norms = norms[:, np.newaxis].T
+    dictionary = dictionary / np.dot(np.ones((n_features, 1)), norms)
+    code = code * np.dot(norms.T, np.ones((1, n_samples)))
     
+    t1 = 4 # 3
+    t2 = 0.9# 0.999
+    error = sum((data - np.dot(dictionary, code)) ** 2)
+    gram = np.dot(dictionary.T, dictionary)
+    gram = gram - np.diag(np.diag(gram))
     
+    for i in range(0, n_components):
+        if (max(gram[i, :]) > t2) or (len(*np.nonzero(abs(code[i, :]) > 1e-7)) <= t1):
+            val = np.max(error)
+            pos = np.argmax(error)
+            error[pos] = 0
+            dictionary[:, i] = data[:, pos] / np.linalg.norm(data[:, pos])
+            gram = np.dot(dictionary.T, dictionary)
+            gram = gram - np.diag(np.diag(gram))
+            
+    return dictionary
+        
+
+
+def fix_dictionary(Y, A, X):
+    """
+    K-SVD の精度を向上させるために更新の際に辞書を修正する
+    * 修正の方針
+    辞書中のアトムが他のアトムと似ている or ほとんど利用されていない なら
+    最も表現誤差が大きい正規化した事例と取りかえる
+    "ほとんど利用されていないアトム" は事例集合が空集合かどうかで判断する
+
+    Y: 信号事例
+    A: 更新している辞書
+    X: スパースベクトル
+    """
+    # 正規化
+    normY = collum_normalizarion(Y)
+    normA = collum_normalizarion(A)
+    
+    # グラム行列を使うことでアトムの類似度をはかる
+    gram = np.dot(normA.T, normA)
+    gram = gram - np.diag(np.diag(gram))
+
+    # 閾値を設定
+    t1 = 4
+    t2 = 0.9
+
+    err = sum(Y - np.dot(A, X))
+    
+    for i in range(A.shape[1]):
+        if max(gram[i, :] > t2) or (sum(X[i, :] != 0) <= t1):
+            idx = np.argmax()
+            err[idx] = 0
+            normA[:, i] = normY[:, idx]
+            gram = np.dot(normA.T, normA)
+            gram = gram - np.diag(np.diag(gram))
+            
+    return normA
+
 def main():
     """
     K-SVD アルゴリズムの性能を評価する
@@ -111,7 +171,7 @@ def main():
         Y[:, i] = np.dot(A0[:, np.random.permutation(60)[:k0]], np.random.rand(4)) + np.random.randn(30) * sigma
 
     # K-SVD により辞書を学習する
-    iter_num = 20
+    iter_num = 50
     A, log = KSVD(Y, A0.shape[1], k0, sigma, iter_num, A0)
     print('log: ', log)
     print('log.shape: ', log.shape)
