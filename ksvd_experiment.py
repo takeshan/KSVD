@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from skimage import io
 
 from utils import *
+from ksvd import KSVD
 
 def show_dictionary(A, name=None):
     """ 辞書を表示 """
@@ -43,7 +44,25 @@ def main():
     A_2D = np.kron(A_1D, A_1D)
 
     print(A_2D.shape)
-    show_dictionary(A_2D, './figure/dictionary.png')
+
+    # 抽出したパッチで学習する
+    idx = np.random.randint(0, patches.shape[0], int(patches.shape[0] / 10))
+    Y = patches[idx]
+    Y = Y.reshape(len(idx), 64).swapaxes(0, 1)
+    print(Y.shape)
+    sig = 0
+    k0 = 4
+    iter_num = 50
+    
+    babara_dic, babara_log = KSVD(Y, A_2D.shape[1], k0, sig, iter_num, initial_dictonary=A_2D)
+    show_dictionary(babara_dic, './figure/ksvd_babara_dic.png')
+
+    plt.plot(barbara_log, label='K-SVD')
+    plt.ylabel('mean error')
+    plt.xlabel('# of iteration')
+    plt.legend(loc='best')
+    plt.grid()
+    plt.savefig('barbara_K-SVD.png', dpi=220)
     
 if __name__ == '__main__':
     main()
