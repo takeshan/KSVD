@@ -50,11 +50,12 @@ def main():
     Y = patches[idx]
     Y = Y.reshape(len(idx), 64).swapaxes(0, 1)
     print(Y.shape)
+
     sig = 0
     k0 = 4
     iter_num = 50
     
-    babara_dic, babara_log = KSVD(Y, A_2D.shape[1], k0, sig, iter_num, initial_dictonary=A_2D)
+    babara_dic, babara_log = KSVD(Y, A_2D.shape[1], k0, sig, iter_num, initial_dictonary=A_2D.copy())
     show_dictionary(babara_dic, './figure/ksvd_babara_dic.png')
 
     plt.plot(barbara_log, label='K-SVD')

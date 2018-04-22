@@ -40,24 +40,33 @@ def KSVD(Y, m, k0, sig, iter_num, A0=None, initial_dictonary=None):
             X[:, i], _ = OMP(A, Y[:, i], eps, k0)
 
         # K-SVD 辞書更新
-        for j in range(m):
-            omega = X[j, :] != 0
-            X[j, omega] = 0
-            Res_err = Y[:, omega] - np.dot(A, X[:, omega])
-            U, S, V = np.linalg.svd(Res_err)
-            A[:, j] = U[:, 0]
-            X[j, omega] = S[0] * V.T[:, 0]
+        for j0 in range(m):
+            omega = X[j0, :] != 0
+            if np.sum(omega) == 0:
+                continue
+            X[j0, omega] = 0
+            Res_err = Y - np.dot(A, X)
+            Res_err = Res_err[:, omega]
 
-        val = np.abs(Y - np.dot(A, X)).mean()
+            U, S, V = np.linalg.svd(Res_err)
+            A[:, j0] = U[:, 0]
+            X[j0, omega] = S[0] * V.T[:, 0]
+            
+        val = np.linalg.norm(Y - np.dot(A, X)) ** 2
         A = fix_dictionary(Y, A, X)
         
         if A0 is not None:
             per = percent_of_recovering_atom(A, A0)
-            log.append([val, per])
-            print('mean error: {}, percent: {}'.format(val, per))
+            mean_err = np.abs(Y - np.dot(A, X)).mean()
+            log.append([mean_err, per])
+            print('mean error: {}, percent: {}'.format(mean_err, per))
         else:
-            log.append(val)
-            print('mean error: {}'.format(val))
+            mean_err = np.abs(Y - np.dot(A, X)).mean()
+            log.append(mean_err)
+            print('mean error: {}'.format(mean_err))
+
+        if val < eps:
+            break
             
     return A, np.array(log)
 

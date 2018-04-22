@@ -7,6 +7,7 @@ matplotlib.use('TKAgg')
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
+from utils import *
 
 def OMP(A, b, eps, k0):
     """
@@ -25,62 +26,31 @@ def OMP(A, b, eps, k0):
     S = np.zeros(m)
     r = b.copy()
 
+    # A を正規化
+    normA, _ = collum_normalizarion(A)
+    
     for _ in range(k0):
         # 誤差の計算
         idx = np.where(S == 0)[0]
-        err = np.dot(r, r) - np.dot(A[:, idx].T, r) ** 2
-
+        err = np.dot(normA[:, idx].T, r) ** 2
+        
         # サポートの更新
-        S[idx[err.argmin()]] = 1
+        S[idx[err.argmax()]] = 1
         
         # 暫定解の更新
-        As = A[:, S == 1] 
-        x[S == 1] = np.dot(np.linalg.pinv(As), b)
+        normAs = normA[:, S == 1]
+        pinv = np.linalg.pinv(np.dot(normAs.T, normAs))
+        x[S == 1] = np.dot(pinv, np.dot(normAs.T, b))
 
         # 残差の更新
-        r = b - np.dot(A, x)
-        norm_r = np.linalg.norm(r)
+        r = b - np.dot(normA, x)
 
+        norm_r = np.linalg.norm(r)
         if norm_r < eps:
             break
 
     return x, S
-
-def evaluate(x, _x, S, _S):
-    """
-    OMP の成否を L2 誤差とサポートの復元度合いの２つで評価する
     
-    x: 厳密解
-    _x: 近似解
-    S: 厳密解のサポート
-    _S: 近似解のサポート
-    """
-
-    # L2 誤差を評価
-    err = np.linalg.norm(x - _x) / np.linalg.norm(x) ** 2
-
-    # サポート間の復元度合いの評価
-    dist = support_distance(S, _S)
-
-    return err, dist
-    
-
-def support_distance(S, _S):
-    """
-    サポート間の距離を計算する
-    定義: dist(S, _S) = (max{|S|, |_S|} - |S and _S|) / max{|S|, |_S|}
-    スパースモデリング 第3章 p55 より
-    
-    S: 厳密解のサポート
-    _S: 近似解のサポート
-    """
-
-    val = max(np.sum(S), np.sum(_S))
-
-    return float(val - np.sum(S * _S)) / val
-    
-
-
 def main():
     """
     OMP の性能をチェックする
@@ -98,8 +68,7 @@ def main():
         for _ in range(k):
             # ランダムな行列 A (30 x 50) を作成し, L2 正規化する
             A = (np.random.rand(30, 50) - 0.5) * 2
-            for m in range(A.shape[1]):
-                A[:, m] = A[:, m] / np.linalg.norm(A[:, m])
+            normA, W = collum_normalizarion(A) 
                 
             # 非ゼロ要素の数が k0 個であるスパースなベクトル x を作成する
             x = np.zeros(A.shape[1])
@@ -111,29 +80,37 @@ def main():
                 S[id] = 1
         
             # 上記の x を用いて, 観測ベクトル b を生成する
-            b = np.dot(A, x)
+            b = np.dot(normA, x)
             
-            _x, _S = OMP(A, b, eps, k0)
-            err, dist = evaluate(x, _x, S, _S)
+            _x, _S = OMP(normA, b, eps, k0)
+            err = l2_err(x, _x)
+            dist = support_distance(S, _S)
 
             errs[k0] += err
             dists[k0] += dist
 
         errs[k0] /= k
         dists[k0] /= k
-      
+
+        print('k0: {}, err: {}, dist: {}'.format(k0, errs[k0], dists[k0]))
+        
     # plot
-    fig = plt.figure(figsize=(8, 6))
+    fig = plt.figure(figsize=(6, 8))
     ax_L2 = fig.add_subplot(211)
     ax_L2.set_xlabel('# of non zero components')
     ax_L2.set_ylabel('the error of average L2')
     ax_L2.plot(K0, errs[1:])
+    ax_L2.set_xlim(1, 10)
+    ax_L2.set_ylim(0, 1.0)
+    ax_L2.set_yticks(np.array(range(11)) * 0.1)
 
     ax_dist = fig.add_subplot(212)
     ax_dist.set_xlabel('# of non zero components')
     ax_dist.set_ylabel('distance between supports')
     ax_dist.plot(K0, dists[1:])    
-
+    ax_dist.set_xlim(1, 10, 1)
+    ax_dist.set_ylim(0, 0.8, 0.1)
+    
     plt.show()
     
 
