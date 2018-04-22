@@ -33,7 +33,7 @@ def l2_err(A, _A):
     """
     行列間の L2 誤差を求める
     """
-    return np.linalg.norm(A - _A) / (np.linalg.norm(A) ** 2)
+    return np.dot(A - _A, A - _A) / np.dot(A, A)
 
 def extract_patch(img, patch_size):
     """

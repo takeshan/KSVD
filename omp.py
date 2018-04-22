@@ -25,27 +25,23 @@ def OMP(A, b, eps, k0):
     x = np.zeros(m)
     S = np.zeros(m)
     r = b.copy()
-
-    # A を正規化
-    normA, _ = collum_normalizarion(A)
     
     for _ in range(k0):
         # 誤差の計算
         idx = np.where(S == 0)[0]
-        err = np.dot(normA[:, idx].T, r) ** 2
+        err = np.dot(r, r) - np.dot(A[:, idx].T, r) ** 2
         
         # サポートの更新
-        S[idx[err.argmax()]] = 1
+        S[idx[err.argmin()]] = 1
         
         # 暫定解の更新
-        normAs = normA[:, S == 1]
-        pinv = np.linalg.pinv(np.dot(normAs.T, normAs))
-        x[S == 1] = np.dot(pinv, np.dot(normAs.T, b))
+        As = A[:, S == 1]
+        x[S == 1] = np.dot(np.linalg.pinv(As), b)
 
         # 残差の更新
-        r = b - np.dot(normA, x)
+        r = b - np.dot(A, x)
 
-        norm_r = np.linalg.norm(r)
+        norm_r = np.linalg.norm(r) ** 2
         if norm_r < eps:
             break
 
@@ -68,26 +64,27 @@ def main():
         for _ in range(k):
             # ランダムな行列 A (30 x 50) を作成し, L2 正規化する
             A = (np.random.rand(30, 50) - 0.5) * 2
-            normA, W = collum_normalizarion(A) 
+            A, _ = collum_normalizarion(A) 
                 
             # 非ゼロ要素の数が k0 個であるスパースなベクトル x を作成する
             x = np.zeros(A.shape[1])
-            S = np.zeros(A.shape[1])
-            tmp = np.random.rand(A.shape[1]) + 1     
-            for i in range(k0):
-                id = np.random.randint(0, A.shape[1])
-                x[id] = tmp[id] if tmp[id] >= 0.5 else -1 * tmp[id]
-                S[id] = 1
+            index = np.random.randint(0, A.shape[1], k0)
+            for id in index:
+                x[id] = np.random.rand() + 1
+                if np.random.rand() < 0.5:
+                    x[id] *= -1
         
             # 上記の x を用いて, 観測ベクトル b を生成する
-            b = np.dot(normA, x)
-            
-            _x, _S = OMP(normA, b, eps, k0)
-            err = l2_err(x, _x)
-            dist = support_distance(S, _S)
+            b = np.dot(A, x)
 
-            errs[k0] += err
-            dists[k0] += dist
+            # サポート S 作成
+            S = np.zeros(A.shape[1])
+            S[index] = 1
+            
+            _x, _S = OMP(A, b, eps, k0)
+            errs[k0] += l2_err(x, _x)
+            dists[k0] += support_distance(S, _S)
+
 
         errs[k0] /= k
         dists[k0] /= k
