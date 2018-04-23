@@ -6,6 +6,7 @@ matplotlib.use('TKAgg')
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import omp
+import time
 
 A0 = np.random.randn(30, 60)
 A0 = np.dot(A0, np.diag(1. / np.sqrt(np.diag(np.dot(A0.T, A0)))))
@@ -118,21 +119,30 @@ class DctionaryLearning(object):
 
         ndx = np.arange(m)
         log = []
-        for k in range(n_iter):
+        for k in tqdm(range(n_iter)):
+            start = time.time()
             for i in range(Y.shape[1]):
                 #X[:, i], _ = OMP(A, Y[:, i], k0, eps=eps)
                 X[:, i], _ = omp.OMP(A, Y[:, i], eps, k0)
-                
+            end = time.time() - start
+            print('time to make X vector', end)
+
+            start2 = time.time()
             for j in ndx:      
                 x_using = X[j, :] != 0
                 if np.sum(x_using) == 0:
                     continue
                 X[j, x_using] = 0
                 Residual_err = Y[:, x_using] - np.dot(A, X[:, x_using])                 
+                start = time.time()
                 U, s, Vt = np.linalg.svd(Residual_err)
+                end = time.time() - start
+                print('SVD time: ', end)
                 A[:, j] = U[:, 0]
                 X[j, x_using] = s[0] * Vt.T[:, 0]
 
+            end2 = time.time() - start2
+            print('update dictionary: ', end2)
             opt = np.abs(Y - np.dot(A, X)).mean()
  
             if A0 is not None:
@@ -154,11 +164,11 @@ class DctionaryLearning(object):
         return float(num) / A.shape[1] * 100
 
 
-dl = DctionaryLearning()
+#dl = DctionaryLearning()
 #A_MOD, log_MOD = dl.MOD(Y, sig, A0.shape[1], k0, A0=A0, n_iter=50)
-A_KSVD, log_KSVD = dl.KSVD(Y, sig, A0.shape[1], k0, A0=A0, n_iter=50)
+#A_KSVD, log_KSVD = dl.KSVD(Y, sig, A0.shape[1], k0, A0=A0, n_iter=50)
 
-fig, ax = plt.subplots(1, 2, figsize=(12, 4))
+#fig, ax = plt.subplots(1, 2, figsize=(12, 4))
 #ax[0].plot(log_MOD[:, 0], label='MOD')
 #ax[0].plot(log_KSVD[:, 0], ls='--', label='K-SVD')
 #ax[0].set_ylabel('mean error')
@@ -166,9 +176,9 @@ fig, ax = plt.subplots(1, 2, figsize=(12, 4))
 #ax[0].legend(loc='best')
 #ax[0].grid()
 #ax[1].plot(log_MOD[:, 1], label='MOD')
-ax[1].plot(log_KSVD[:, 1], ls='--', label='K-SVD')
-ax[1].set_ylabel('atom percent')
-ax[1].set_xlabel('# of iteration')
-ax[1].legend(loc='best')
-ax[1].grid()
-plt.savefig('MOD_K-SVD.png', dpi=220)
+#ax[1].plot(log_KSVD[:, 1], ls='--', label='K-SVD')
+#ax[1].set_ylabel('atom percent')
+#ax[1].set_xlabel('# of iteration')
+#ax[1].legend(loc='best')
+#ax[1].grid()
+#plt.savefig('MOD_K-SVD.png', dpi=220)
