@@ -1,0 +1,4 @@
+matplotlib==2.1.2
+numpy==1.14.0
+scikit-image==0.13.1
+tqdm==4.21.0

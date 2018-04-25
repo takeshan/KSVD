@@ -27,11 +27,9 @@ def show_dictionary(A, name=None):
 def main():
     # 画像からパッチを抽出
     img = io.imread('./figure/babara.png', as_grey=True)
-    print(img.shape)
     patch_size = 8
     patches = extract_patch(img, patch_size)
-    print(patches.shape)
-    
+
     # 2 次元分離可能 DCT 辞書を作成
     A_1D = np.zeros((8, 11))
     for k in range(11):
@@ -42,8 +40,6 @@ def main():
             A_1D[:, k] -= A_1D[:, k].mean()
 
     A_2D = np.kron(A_1D, A_1D)
-
-    print(A_2D.shape)
 
     # 抽出したパッチで学習する
     idx = np.random.randint(0, patches.shape[0], int(patches.shape[0] / 10))
@@ -63,7 +59,7 @@ def main():
     plt.xlabel('# of iteration')
     plt.legend(loc='best')
     plt.grid()
-    plt.savefig('barbara_K-SVD.png', dpi=220)
+    plt.show()
     
 if __name__ == '__main__':
     main()

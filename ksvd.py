@@ -53,8 +53,7 @@ def KSVD(Y, m, k0, sig, iter_num, A0=None, initial_dictonary=None):
             X[j0, omega] = S[0] * V.T[:, 0]
             
         val = np.linalg.norm(Y - np.dot(A, X)) ** 2
-        #A = fix_dictionary(Y, A, X)
-        A = clear_dictionary(A, X, Y)
+        A = fix_dictionary(Y, A, X)
         
         if A0 is not None:
             per = percent_of_recovering_atom(A, A0, 0.99)
@@ -87,32 +86,6 @@ def percent_of_recovering_atom(A, A0, threshold=0.99):
            per += 1 
 
     return float(per) / A.shape[1] * 100
-
-def clear_dictionary(dictionary, code, data):
-        n_features, n_components = dictionary.shape
-        n_components, n_samples = code.shape
-        norms = np.sqrt(sum(dictionary ** 2))
-        norms = norms[:, np.newaxis].T
-        dictionary = dictionary / np.dot(np.ones((n_features, 1)), norms)
-        code = code * np.dot(norms.T, np.ones((1, n_samples)))
-
-        t1 = 4 # 3
-        t2 = 0.9# 0.999
-        error = sum((data - np.dot(dictionary, code)) ** 2)
-        gram = np.dot(dictionary.T, dictionary)
-        gram = gram - np.diag(np.diag(gram))
-
-        for i in range(0, n_components):
-            if (max(gram[i, :]) > t2) or (len(*np.nonzero(abs(code[i, :]) > 1e-7)) <= t1):
-                val = np.max(error)
-                pos = np.argmax(error)
-                error[pos] = 0
-                dictionary[:, i] = data[:, pos] / np.linalg.norm(data[:, pos])
-                gram = np.dot(dictionary.T, dictionary)
-                gram = gram - np.diag(np.diag(gram))
-
-        return dictionary
-
 
 def fix_dictionary(Y, A, X):
     """
@@ -169,8 +142,7 @@ def main():
     # K-SVD により辞書を学習する
     iter_num = 50
     A, log = KSVD(Y, A0.shape[1], k0, sigma, iter_num, A0=A0)
-    print('log: ', log)
-    print('log.shape: ', log.shape)
+
     # 得られた辞書の結果をプロットする
     fig = plt.figure(figsize=(8, 6))
     ax_err = fig.add_subplot(211)
