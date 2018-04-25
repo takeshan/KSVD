@@ -1,7 +1,0 @@
-# .png .jpg など画像はあげない
-*.png
-*.jpg
-
-# .gitignore などの設定ファイルはあげない
-.gitignore
-.DS_Store
