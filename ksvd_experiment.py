@@ -26,7 +26,7 @@ def show_dictionary(A, name=None):
                 
 def main():
     # 画像からパッチを抽出
-    img = io.imread('./figure/babara.png', as_grey=True)
+    img = io.imread('./figure/barbara.png', as_grey=True)
     patch_size = 8
     patches = extract_patch(img, patch_size)
 
@@ -45,7 +45,6 @@ def main():
     idx = np.random.randint(0, patches.shape[0], int(patches.shape[0] / 10))
     Y = patches[idx]
     Y = Y.reshape(len(idx), 64).swapaxes(0, 1)
-    print(Y.shape)
 
     sig = 0
     k0 = 4
