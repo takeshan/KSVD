@@ -50,15 +50,9 @@ def main():
     k0 = 4
     iter_num = 50
     
-    babara_dic, babara_log = KSVD(Y, A_2D.shape[1], k0, sig, iter_num, initial_dictonary=A_2D.copy())
-    show_dictionary(babara_dic, './figure/ksvd_babara_dic.png')
-
-    plt.plot(babara_log, label='K-SVD')
-    plt.ylabel('mean error')
-    plt.xlabel('# of iteration')
-    plt.legend(loc='best')
-    plt.grid()
-    plt.show()
+    barbara_dic, barbara_log = KSVD(Y, A_2D.shape[1], k0, sig, iter_num, initial_dictonary=A_2D.copy())
+    show_dictionary(barbara_dic, './figure/ksvd_barbara_dic.png')
+    np.savetxt('./result.txt', barbara_log)
     
 if __name__ == '__main__':
     main()
