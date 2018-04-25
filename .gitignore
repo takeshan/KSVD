@@ -3,4 +3,5 @@
 *.jpg
 
 # .gitignore などの設定ファイルはあげない
-.*
+.gitignore
+.DS_Store
